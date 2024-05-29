@@ -97,14 +97,18 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       
       sms_balance = balance_inquiry()
       
-      
       print(f"{log} {steps(step, total_step)} Check credential for {account['username']}")
+      
+      check = client.check_username(account['username'])
+      assert check.get("available"), "Username not available"
+      
+      
       # check = client.check_email(email)
       # assert check.get("valid"), f"{log} {steps(step, total_step)} Email not valid ({check})"
       # assert check.get("available"), f"{log} {steps(step, total_step)} Email not available ({check})"
       
       if sms_balance < 20:
-        raise Exception(f"{log} {steps(step, total_step)} Insufficient balance: {sms_balance}")
+        raise Exception(f"Insufficient balance: {sms_balance}")
       else:
         response = request_vn()
         phone_id = response.get('activationId')
@@ -118,7 +122,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       while retries < MAX_RETRY:
         try:
             check = client.check_phone_number(phone_number, nav_chain)
-            assert check.get("status") == "ok", f"{log} {steps(step, total_step)} Phone number not valid ({check})"
+            assert check.get("status") == "ok", "Phone number not valid"
             if check.get("status") == "ok":
                 break
         except Exception as e:
@@ -135,7 +139,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       while retries < MAX_RETRY:
         try:
           sent = client.send_verify_phone(phone_number, nav_chain)
-          assert sent.get("status") == "ok", f"{log} {steps(step, total_step)} Verification not sent ({sent})"
+          assert sent.get("status") == "ok", "Verification not sent"
           if sent.get("status") == "ok":
             break
         except Exception as e:
@@ -170,7 +174,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       while retries < MAX_RETRY:
         try:
           verification_code = client.validate_confirmation_code(phone_number, code, full_nav_chain)
-          assert verification_code.get("error_type") is None and verification_code.get("verified"), f"{log} {steps(step, total_step)} Failed to verify code ({verification_code})"
+          assert verification_code.get("error_type") is None and verification_code.get("verified"), "Failed to verify code"
           if verification_code.get("verified"):
             break
         except Exception as e:
@@ -296,4 +300,4 @@ def main(total):
       {executor.submit(create_account, account, index, total_account, reference): account for index, account in enumerate(accounts, start=1)}
       
 if __name__ == '__main__':
-    main(99999)
+    main(100)

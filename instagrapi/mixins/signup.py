@@ -70,6 +70,17 @@ class SignUpMixin:
             params={"guid": self.uuid, "main_account_selected": False},
         )
 
+    def check_username(self, username) -> dict:
+        """Check available (free, not registred) check_username"""
+        return self.private_request(
+            "users/check_username/",
+            {
+                "is_group_creation": "false",
+                "username": username,
+                "_uuid": self.uuid,
+            }
+        )
+        
     def check_email(self, email) -> dict:
         """Check available (free, not registred) email"""
         return self.private_request(
