@@ -19,7 +19,7 @@ load_dotenv()
 PROXY_A = os.getenv('PROXY_A')
 PROXY_B = os.getenv('PROXY_B')
 PROXY = os.getenv('ROTATING_PROXY')
-MAX_WORKERS = 4
+MAX_WORKERS = 5
 MAX_RETRY = 2
 TIMEOUT = 45
 REFERENCE_USERNAME = os.getenv("IG_REFERENCE_USERNAME").lower()
@@ -130,13 +130,13 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       while retries < MAX_RETRY:
         try:
           sent = client.send_verify_phone(phone_number, nav_chain)
+          assert sent.get("status") == "ok", f"{log} {steps(step, total_step)} Verification not sent ({sent})"
           if sent.get("status") == "ok":
             break
         except Exception as e:
           print(f"{log} {steps(step, total_step)} try {retries} {e}")
           time.sleep(TIMEOUT)
         retries += 1
-      assert sent.get("status") == "ok", f"{log} {steps(step, total_step)} Verification not sent ({sent})"
       
       step += 1
       time.sleep(10)
@@ -291,4 +291,4 @@ def main(total):
       {executor.submit(create_account, account, index, total_account, reference): account for index, account in enumerate(accounts, start=1)}
       
 if __name__ == '__main__':
-    main(10)
+    main(500)
