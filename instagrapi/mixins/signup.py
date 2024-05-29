@@ -70,6 +70,15 @@ class SignUpMixin:
             params={"guid": self.uuid, "main_account_selected": False},
         )
 
+    def get_suggest_follows(self) -> dict:
+        return self.private_request(
+            "discover/sectioned_ayml/", 
+            params={
+                "show_mutual_contacts_section": False,
+                "request_from_nux": True,
+            }
+        )
+
     def check_username(self, username) -> dict:
         """Check available (free, not registred) check_username"""
         return self.private_request(

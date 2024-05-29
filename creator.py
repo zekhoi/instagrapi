@@ -19,12 +19,13 @@ load_dotenv()
 PROXY_A = os.getenv('PROXY_A')
 PROXY_B = os.getenv('PROXY_B')
 PROXY = os.getenv('ROTATING_PROXY')
-MAX_WORKERS = 5
+MAX_WORKERS = 2
 MAX_RETRY = 2
 TIMEOUT = 45
 REFERENCE_USERNAME = os.getenv("IG_REFERENCE_USERNAME").lower()
 REFERENCE_PASSWORD = os.getenv("IG_REFERENCE_PASSWORD")
 REFERENCE_FILE = f'{REFERENCE_USERNAME}_login_reference.json'
+NO_AVAILABLE_NUMBERS = False
 
 class Setting(TypedDict):
     device_setting: dict
@@ -75,6 +76,7 @@ def get_name_based_on_gender(gender):
         return faker.name_female()    
 
 def create_account(account:Account, index:int, total_account:int, reference:AccountReference):
+    global NO_AVAILABLE_NUMBERS
     log = f"[{index}/{total_account}]"
     step = 1
     total_step = 9
@@ -94,12 +96,22 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
     phone_id = ""
     status = 'failed'
     try:
-      client.get_signup_config()
-      
+      if NO_AVAILABLE_NUMBERS:
+        raise Exception("Skipping account creation due to no available numbers")
       sms_balance = balance_inquiry()
       
+      vn_quantity = request_quantity_of_vn()
+      
+      if vn_quantity < MAX_WORKERS:
+        raise Exception(f"Insufficient quantity of phone number: {vn_quantity}")
+      
+      print(f"{log} {steps(step, total_step)} Checking phone number availability with balance {sms_balance} and quantity {vn_quantity}")
+      
+      
+      step += 1
       print(f"{log} {steps(step, total_step)} Check credential for {account['username']}")
       
+      client.get_signup_config()
       check = client.check_username(account['username'])
       assert check.get("available"), "Username not available"
       
@@ -108,8 +120,6 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       # assert check.get("valid"), f"{log} {steps(step, total_step)} Email not valid ({check})"
       # assert check.get("available"), f"{log} {steps(step, total_step)} Email not available ({check})"
       
-      step += 1
-      print(f"{log} {steps(step, total_step)} Checking phone number availability with balance {sms_balance}")
       
       if sms_balance < 20:
         raise Exception(f"Insufficient balance: {sms_balance}")
@@ -185,6 +195,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           print(f"{log} {steps(step, total_step)} {e}")
           time.sleep(TIMEOUT)
         retries += 1
+      status = 'success'
       step += 1
       
       retries = 0
@@ -209,6 +220,8 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           print(f"{log} {steps(step, total_step)} Creating account with verification code: {code}")
           try:
             data = client.accounts_create(**kwargs)
+            if data.get("message") == "feedback_required":
+                raise Exception("Feedback required, might be detected as spam")
             if data.get("message") != "challenge_required":
                 break
             if client.challenge_flow(data["challenge"]):
@@ -226,7 +239,6 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
         print(f"{log} {steps(step, total_step)} Account banned")
         write_to_csv('banned.csv', account, account.keys())
         return data
-      status = 'success'
       write_to_csv('success.csv', account, account.keys())
       print(f"{log} {steps(step, total_step)} Successfully created account for {response['username']} with id {response['pk']} and full name {response['full_name']}")
       step += 1
@@ -235,11 +247,11 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       boarding(client, account['gender'])
       print(f"{log} {steps(step, total_step)} Success boarding for {account['username']}")
       client.logout()
-      phone_id = None
-      phone_number = None
       return data
   
     except Exception as e:
+      if "No available numbers" in str(e) or "Insufficient quantity" in str(e):
+        NO_AVAILABLE_NUMBERS = True
       print(f"{log} {steps(step, total_step)} Failed to create account for {account['username']} - {e}")
     
     finally:
@@ -247,7 +259,8 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       if phone_id:
         print(f"{log} {steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}")
         cancel_activation(phone_id, status)
-        print(f"{log} {steps(step, total_step)} Activation with id {phone_id} canceled")
+        print(f"{log} {steps(step, total_step)} Activation with id {phone_id} {'cancelled' if status == 'success' else 'completed'}")
+
       else:
         print(f"{log} {steps(step, total_step)} No phone number to cancel")
   
