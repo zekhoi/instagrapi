@@ -68,6 +68,11 @@ def write_to_csv(file_path, data, fieldnames):
             writer.writeheader()
         writer.writerow(data)
         
+def get_name_based_on_gender(gender):
+    if gender == 'male':
+        return faker.name_male()
+    else:
+        return faker.name_female()    
 
 def create_account(account:Account, index:int, total_account:int, reference:AccountReference):
     log = f"[{index}/{total_account}]"
@@ -241,14 +246,14 @@ def main(total):
   total_account = total
   accounts = [
     {
-      'username': f'{faker.user_name().lower()}{random.randint(1, 999)}',
-      'password': 'Password32!',
-      'fullname': faker.name(),
-      'day': str(random.choice(list(range(1, 28)))),
-      'month': str(random.choice(list(range(1, 12)))),
-      'year': str(random.choice(list(range(1990, 2001)))),
-      'gender': random.choice(['male', 'female']),
-      'setting': get_random_user_agent()
+        'username': f'{faker.user_name().lower()}{random.randint(1, 999)}',
+        'password': 'Password32!',
+        'fullname': get_name_based_on_gender(gender := random.choice(['male', 'female'])),
+        'day': str(random.choice(list(range(1, 28)))),
+        'month': str(random.choice(list(range(1, 12)))),
+        'year': str(random.choice(list(range(1990, 2001)))),
+        'gender': gender,
+        'setting': get_random_user_agent()
     }
     for _ in range(total_account)
   ]
@@ -291,4 +296,4 @@ def main(total):
       {executor.submit(create_account, account, index, total_account, reference): account for index, account in enumerate(accounts, start=1)}
       
 if __name__ == '__main__':
-    main(500)
+    main(99999)
