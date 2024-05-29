@@ -164,9 +164,11 @@ class PrivateRequestMixin:
             "X-IG-Device-ID": self.uuid,
             "X-IG-Family-Device-ID": self.phone_id,
             "X-IG-Android-ID": self.android_device_id,
-            "X-IG-Timezone-Offset": str(self.timezone_offset),
-            "X-IG-Connection-Type": "WIFI",
-            "X-IG-Capabilities": "3brTvx0=",  # "3brTvwE=" in instabot
+            "X-IG-Timezone-Offset": "0",
+            # "X-IG-Timezone-Offset": str(self.timezone_offset),
+            "X-IG-Connection-Type": random.choice(["4G LTE"]),
+            # "X-FB-Connection-Type": random.choice(["4G LTE"]),
+            "X-FB-Capabilities": "3brTv10=",  # "3brTvwE=" in instabot
             "X-IG-App-ID": self.app_id,
             "Priority": "u=3",
             "User-Agent": self.user_agent,
@@ -317,6 +319,7 @@ class PrivateRequestMixin:
             time.sleep(self.request_timeout)
         # if self.user_id and login:
         #     raise Exception(f"User already logged ({self.user_id})")
+        # print(self.private.headers)
         try:
             if not endpoint.startswith("/"):
                 endpoint = f"/v1/{endpoint}"
@@ -326,21 +329,33 @@ class PrivateRequestMixin:
 
             api_url = f"https://{domain or config.API_DOMAIN}/api{endpoint}"
             self.logger.info(api_url)
+            
+            if "Authorization" in self.private.headers:
+                if not self.private.headers["Authorization"]:
+                    self.private.headers.pop("Authorization")
+                    
             if data:  # POST
                 # Client.direct_answer raw dict
                 # data = json.dumps(data)
+                # print("POST")
+                # print(api_url)
+                # print(self.private.headers)
+                        
                 self.private.headers[
                     "Content-Type"
                 ] = "application/x-www-form-urlencoded; charset=UTF-8"
                 if with_signature:
                     # Client.direct_answer doesn't need a signature
+                    # print("data",data)
                     data = generate_signature(dumps(data))
+                    # print("data",data)
                     if extra_sig:
                         data += "&".join(extra_sig)
                 response = self.private.post(
                     api_url, data=data, params=params, proxies=self.private.proxies
                 )
             else:  # GET
+                # print("GET")
                 self.private.headers.pop("Content-Type", None)
                 response = self.private.get(
                     api_url, params=params, proxies=self.private.proxies
@@ -375,6 +390,7 @@ class PrivateRequestMixin:
         except requests.HTTPError as e:
             try:
                 self.last_json = last_json = response.json()
+                # print("last_json",last_json)
             except JSONDecodeError:
                 pass
             message = last_json.get("message", "")
@@ -478,6 +494,7 @@ class PrivateRequestMixin:
             'status': 'ok' <-------------
             }"""
             raise ClientError(response=response, **last_json)
+        # print("last_json",last_json)
         return last_json
 
     def request_log(self, response):

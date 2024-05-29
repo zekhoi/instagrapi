@@ -4,11 +4,12 @@ API_DOMAIN = "i.instagram.com"
 # Android (26/8.0.0;
 # 480dpi; 1080x1920; Xiaomi;
 # MI 5s; capricorn; qcom; en_US; 205280538)
+# 373210788
 USER_AGENT_BASE = (
-    "Instagram {app_version} "
+    "Instagram 332.0.0.38.90 "
     "Android ({android_version}/{android_release}; "
     "{dpi}; {resolution}; {manufacturer}; "
-    "{model}; {device}; {cpu}; {locale}; {version_code})"
+    "{model}; {device}; {cpu}; {locale}; 373210788)"
 )
 # Instagram 76.0.0.15.395 (iPhone9,2; iOS 10_0_2; en_US; en-US; scale=2.61; 1080x1920) AppleWebKit/420+
 # Instagram 208.0.0.32.135 (iPhone; iOS 14_7_1; en_US; en-US; scale=2.61; 1080x1920) AppleWebKit/605.1.15

@@ -83,7 +83,26 @@ class SignUpMixin:
                 "waterfall_id": self.waterfall_id,
             },
         )
-
+    
+    def check_phone_number(self, phone_number, nav) -> dict:
+        """Check available (free, not registred) phone"""
+        headers = {
+            "X-IG-CLIENT-ENDPOINT" : "email_or_phone",
+            "X-IG-Nav-Chain" : nav,
+        }
+        return self.private_request(
+            "accounts/check_phone_number/",
+            {
+                "phone_id": self.phone_id,
+                "login_nonce_map": "{}",
+                "phone_number": phone_number,
+                "guid": self.uuid,
+                "device_id": self.device_id,
+                "prefill_shown": "False"
+            },
+            headers=headers
+        )
+        
     def send_verify_email(self, email) -> dict:
         """Send request to receive code to email"""
         return self.private_request(
@@ -97,6 +116,25 @@ class SignUpMixin:
             },
         )
 
+    def send_verify_phone(self, phone_number, nav) -> dict:
+            """Send request to receive code to phone"""
+            headers = {
+                "X-IG-CLIENT-ENDPOINT" : "email_or_phone",
+                "X-IG-Nav-Chain" : nav,
+            }
+            return self.private_request(
+                "accounts/send_signup_sms_code/",
+                {
+                    "phone_id": self.phone_id,
+                    "phone_number": phone_number,
+                    "guid": self.uuid,
+                    "device_id": self.device_id,
+                    "android_build_type": "release",
+                    "waterfall_id": self.waterfall_id,
+                },
+                headers=headers
+            )
+            
     def check_confirmation_code(self, email, code) -> dict:
         """Enter code from email"""
         return self.private_request(
@@ -107,6 +145,24 @@ class SignUpMixin:
                 "email": email,
                 "waterfall_id": self.waterfall_id,
             },
+        )
+        
+    def validate_confirmation_code(self, phone_number, code, nav) -> dict:
+        """Enter code from phone"""
+        headers = {
+            "X-IG-CLIENT-ENDPOINT" : "phone_confirmation",
+            "X-IG-Nav-Chain" : nav,
+        }
+        return self.private_request(
+            "accounts/validate_signup_sms_code/",
+            {
+                "verification_code": code,
+                "phone_number": phone_number,
+                "guid": self.uuid,
+                "device_id": self.device_id,
+                "waterfall_id": self.waterfall_id,
+            },
+            headers=headers
         )
 
     def check_age_eligibility(self, year, month, day):
@@ -119,21 +175,36 @@ class SignUpMixin:
         self,
         username: str,
         password: str,
+        phone_number: str,
+        verification_code: str,
         email: str,
         signup_code: str,
         full_name: str = "",
         year: int = None,
         month: int = None,
         day: int = None,
+        nav:str = None,
+        logged_user_id: str = "67029938547",
+        logged_user_authorization_token: str = "IGT:2:eyJkc191c2VyX2lkIjoiMjYxOTk5MzkyMDMiLCJzZXNzaW9uaWQiOiIyNjE5OTkzOTIwMyUzQWtkazFPNGlpNmk4Wm5XJTNBMjglM0FBWWVsbGxWMzByNE9jMldjSklxR3lZUE5HV2hzUmZObnlMLUcwVlFHSncifQ==",
         **kwargs,
     ) -> dict:
         timestamp = datetime.now().strftime("%s")
         nonce = f'{username}|{timestamp}|\xb9F"\x8c\xa2I\xaaz|\xf6xz\x86\x92\x91Y\xa5\xaa#f*o%\x7f'
         sn_nonce = base64.encodebytes(nonce.encode()).decode().strip()
         data = {
+            "tos_version": "row",
+            "logged_in_user_id": logged_user_id,
+            "logged_in_user_authorization_token": logged_user_authorization_token,
+            # "sn_nonce": sn_nonce,
+            # "day": str(day),"month": str(month),"year": str(year),
+            "phone_number": phone_number,
+            "verification_code": verification_code,
+            # "email": email,
+            "has_sms_consent": "true",
+            "force_sign_up_code": str(signup_code),
             "is_secondary_account_creation": "true",
             "jazoest": str(int(random.randint(22300, 22399))),  # "22341",
-            "suggestedUsername": "sn_result",
+            "suggestedUsername": "",
             "do_not_auto_login_if_credentials_match": "false",
             "phone_id": self.phone_id,
             "enc_password": self.password_encrypt(password),
@@ -143,13 +214,20 @@ class SignUpMixin:
             "guid": self.uuid,
             "device_id": self.device_id,
             "_uuid": self.uuid,
-            "email": email,
-            "force_sign_up_code": signup_code,
             "waterfall_id": self.waterfall_id,
             "one_tap_opt_in": "true",
             **kwargs,
         }
-        return self.private_request("accounts/create/", data, domain= "www.instagram.com")
+        
+        headers = {
+            # "X-IG-CLIENT-ENDPOINT" : "email_verify",
+            "X-IG-CLIENT-ENDPOINT" : "phone_confirmation",
+            "X-IG-Nav-Chain" : nav,
+            # "X-IG-Nav-Chain" : "SelfFragment:self_profile:1:cold_start:1716899245.145::,AccountSwitchFragment:account_switch_fragment:2:button:1716899277.25::,AddAccountBottomSheetFragment:add_account_bottom_sheet:3:button:1716899278.547::,CreateUsernameFragment:sac_create_username:4:warm_start:1716899375.533::,CreatePasswordFragment:sac_create_password:5:button:1716899406.739::,SACWelcomeFragment:sac_welcome_page:6:button:1716899417.578::,ContactPointTriageFragment:email_or_phone:7:button:1716899419.517::,PhoneConfirmationFragment:phone_confirmation:9:button:1716899753.355::"
+        }
+        # return self.private_request("accounts/create/", data, domain= "www.instagram.com")
+        # print(data)
+        return self.private_request("accounts/create_validated/", data, headers=headers)
 
     def challenge_flow(self, data):
         data = self.challenge_api(data)
