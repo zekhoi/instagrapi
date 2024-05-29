@@ -259,7 +259,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       if phone_id:
         print(f"{log} {steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}")
         cancel_activation(phone_id, status)
-        print(f"{log} {steps(step, total_step)} Activation with id {phone_id} {'cancelled' if status == 'success' else 'completed'}")
+        print(f"{log} {steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}")
 
       else:
         print(f"{log} {steps(step, total_step)} No phone number to cancel")
