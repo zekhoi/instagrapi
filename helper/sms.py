@@ -8,7 +8,7 @@ load_dotenv()
 
 API_KEY = os.getenv('SMS_ACTIVATE_API_KEY')
 SERVICE = 'ig'
-COUNTRY = 33 # 6 Indonesia, 33 Colombia, 4 Philippines
+COUNTRY = os.getenv("SMS_ACTIVATE_COUNTRY") # 6 Indonesia, 33 Colombia, 4 Philippines, 10 vietnam
 MAX_TIMEOUT = 5 # 5 minutes
 
 def request_quantity_of_vn():
@@ -30,6 +30,8 @@ def request_vn():
     response = requests.get(
         f'https://sms-activate.org/stubs/handler_api.php?api_key={API_KEY}&action=getNumberV2&service={SERVICE}&country={COUNTRY}'
     )
+    if "BANNED" in response.text:
+        raise ValueError('Temporary banned from sms-activate.org')
     data = response.json()
 
     # NOTE: response example
@@ -65,9 +67,10 @@ def get_activation_status(id, count=1):
     else:
         raise ValueError('Unknown activation status')
 
-def cancel_activation(id):
+def cancel_activation(id, status='failed'):
+    code_status = 8 if status == 'failed' else 6
     response = requests.get(
-        f'https://api.sms-activate.org/stubs/handler_api.php?api_key={API_KEY}&action=setStatus&status=8&id={id}'
+        f'https://api.sms-activate.org/stubs/handler_api.php?api_key={API_KEY}&action=setStatus&status={code_status}&id={id}'
     )
     if 'DENIED' in response.text:
         print(f'Activation {id} cannot be canceled before 2 minutes')

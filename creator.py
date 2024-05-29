@@ -77,7 +77,7 @@ def get_name_based_on_gender(gender):
 def create_account(account:Account, index:int, total_account:int, reference:AccountReference):
     log = f"[{index}/{total_account}]"
     step = 1
-    total_step = 8
+    total_step = 9
     # wait_seconds = 5
     # max_attempts = 10
     client = Client()
@@ -92,6 +92,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
     email = f"{account['username']}@inboxkitten.com"
     phone_number = ""
     phone_id = ""
+    status = 'failed'
     try:
       client.get_signup_config()
       
@@ -106,6 +107,9 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       # check = client.check_email(email)
       # assert check.get("valid"), f"{log} {steps(step, total_step)} Email not valid ({check})"
       # assert check.get("available"), f"{log} {steps(step, total_step)} Email not available ({check})"
+      
+      step += 1
+      print(f"{log} {steps(step, total_step)} Checking phone number availability with balance {sms_balance}")
       
       if sms_balance < 20:
         raise Exception(f"Insufficient balance: {sms_balance}")
@@ -222,6 +226,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
         print(f"{log} {steps(step, total_step)} Account banned")
         write_to_csv('banned.csv', account, account.keys())
         return data
+      status = 'success'
       write_to_csv('success.csv', account, account.keys())
       print(f"{log} {steps(step, total_step)} Successfully created account for {response['username']} with id {response['pk']} and full name {response['full_name']}")
       step += 1
@@ -241,7 +246,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       print(f"{log} {steps(step, total_step)} Cleaning up account {account['username']}")
       if phone_id:
         print(f"{log} {steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}")
-        cancel_activation(phone_id)
+        cancel_activation(phone_id, status)
         print(f"{log} {steps(step, total_step)} Activation with id {phone_id} canceled")
       else:
         print(f"{log} {steps(step, total_step)} No phone number to cancel")
@@ -300,4 +305,4 @@ def main(total):
       {executor.submit(create_account, account, index, total_account, reference): account for index, account in enumerate(accounts, start=1)}
       
 if __name__ == '__main__':
-    main(100)
+    main(500)
