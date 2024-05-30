@@ -145,7 +145,10 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           is_vn_available = True
         except Exception as e:
           console(f"{log} {steps(step, total_step)} {e}", color=Fore.RED)
-          time.sleep(TIMEOUT)
+          if "banned" in str(e):
+            time.sleep(6 * TIMEOUT)
+          else:
+            time.sleep(TIMEOUT)
       step += 1
         
       console(f"{log} {steps(step, total_step)} Got phone number: {phone_number} with id {phone_id}", color)
@@ -184,7 +187,27 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       step += 1
       time.sleep(10)
       console(f"{log} {steps(step, total_step)} Getting code from sms", color)
-      code = get_activation_status(phone_id)
+      code = ''
+      # code = get_activation_status(phone_id)
+      while not code:
+        try:
+          code = get_activation_status(phone_id)
+          if code:
+            break
+        except Exception as e:
+          console(f"{log} {steps(step, total_step)} {e}", color)
+          
+          if phone_id:
+            console(f"{log} {steps(step, total_step)} Clean up phone number {phone_number} with id {phone_id}", color)
+            cancel_activation(phone_id, status)
+            console(f"{log} {steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color)
+          
+          console(f"{log} {steps(step, total_step)} Retry to request new phone number", color)
+          response = request_vn()
+          phone_id = response.get('activationId')
+          phone_number = f"+{response.get('phoneNumber')}"
+          console(f"{log} {steps(step, total_step)} Got phone number: {phone_number} with id {phone_id}", color)
+          time.sleep(TIMEOUT)
 
       # for attempt in range(1, max_attempts):
         # try:
