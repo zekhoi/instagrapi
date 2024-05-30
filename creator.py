@@ -62,8 +62,19 @@ def load_reference():
     return None
 
 def write_to_csv(file_path, data, fieldnames):
-    file_path = f"result/{datetime.now().strftime('%d-%m-%Y')}-{file_path}"
-    file_exists = os.path.isfile(os.path.join(os.path.dirname(__file__), file_path))
+    folder_path = f"result/{datetime.now().strftime('%d-%m-%Y')}"
+    file_path = f"{folder_path}/{file_path}"
+    if not os.path.exists(os.path.join(os.path.dirname(__file__), 'result')):
+        os.makedirs(os.path.join(os.path.dirname(__file__), 'result'))
+    if not os.path.exists(os.path.join(os.path.dirname(__file__), folder_path)):
+        os.makedirs(os.path.join(os.path.dirname(__file__), folder_path))
+    if not os.path.exists(os.path.join(os.path.dirname(__file__), file_path)):
+        with open(os.path.join(os.path.dirname(__file__), file_path), 'w', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames, delimiter='|')
+            writer.writeheader()
+            
+    file_exists = os.path.exists(os.path.join(os.path.dirname(__file__), file_path))
+      
     with open(os.path.join(os.path.dirname(__file__), file_path), 'a', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames, delimiter='|')
         if not file_exists:
@@ -85,7 +96,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
     color = colors[index % len(colors) - 1]
     log = f"[{time.strftime('%Y-%m-%d %H:%M:%S')} - {index}/{total_account}]"
     step = 1
-    total_step = 9
+    total_step = 8
     # wait_seconds = 5
     # max_attempts = 10
     client = Client()
@@ -102,6 +113,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
     phone_id = ""
     status = 'failed'
     try:
+      console(f"{log} {steps(step, total_step)} Checking availablity balance and quantity for phone number...", color)
       sms_balance = balance_inquiry()
       
       vn_quantity = request_quantity_of_vn()
@@ -115,10 +127,10 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           console(f"{log} {steps(step, total_step)} {e}", color=Fore.RED)
           time.sleep(TIMEOUT)
       
-      console(f"{log} {steps(step, total_step)} Check phone number availability with balance {sms_balance} and quantity {vn_quantity}", color)
+      console(f"{log} {steps(step, total_step)} Available with balance {sms_balance} and quantity {vn_quantity}", color)
       
       step += 1
-      console(f"{log} {steps(step, total_step)} Check credential for {account['username']}", color)
+      console(f"{log} {steps(step, total_step)} Checking credential for {account['username']}...", color)
       
       client.get_signup_config()
       check = client.check_username(account['username'])
@@ -137,77 +149,79 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       #   phone_id = response.get('activationId')
       #   phone_number = f"+{response.get('phoneNumber')}"
       is_vn_available = False
-      while not is_vn_available:
-        try:
-          response = request_vn()
-          phone_id = response.get('activationId')
-          phone_number = f"+{response.get('phoneNumber')}"
-          is_vn_available = True
-        except Exception as e:
-          console(f"{log} {steps(step, total_step)} {e}", color=Fore.RED)
-          if "banned" in str(e):
-            time.sleep(6 * TIMEOUT)
-          else:
-            time.sleep(TIMEOUT)
-      step += 1
-        
-      console(f"{log} {steps(step, total_step)} Got phone number: {phone_number} with id {phone_id}", color)
-      retries = 0
-      
-      nav_chain = generate_timesteps_string(init_steps)
-      while retries < MAX_RETRY:
-        try:
-            check = client.check_phone_number(phone_number, nav_chain)
-            assert check.get("status") == "ok", "Phone number not valid"
-            if check.get("status") == "ok":
-                break
-        except Exception as e:
-            console(f"{log} {steps(step, total_step)} try {retries} {e}", color)
-            time.sleep(TIMEOUT)
-        retries += 1
-      step += 1
-      # console(f"{log} {steps(step, total_step)} Sending email to {email}", color)
-      # sent = client.send_verify_email(email)
-      # assert sent.get("email_sent"), f"{log} {steps(step, total_step)} Email not sent ({sent})"
-      
-      console(f"{log} {steps(step, total_step)} Send verification to {phone_number}", color)
-      retries = 0
-      while retries < MAX_RETRY:
-        try:
-          sent = client.send_verify_phone(phone_number, nav_chain)
-          assert sent.get("status") == "ok", "Verification not sent"
-          if sent.get("status") == "ok":
-            break
-        except Exception as e:
-          console(f"{log} {steps(step, total_step)} try {retries} {e}", color)
-          time.sleep(TIMEOUT)
-        retries += 1
-      console(f"{log} {steps(step, total_step)} Verification sent to {phone_number}", color)
-      
-      step += 1
-      time.sleep(10)
-      console(f"{log} {steps(step, total_step)} Getting code from sms", color)
       code = ''
-      # code = get_activation_status(phone_id)
       while not code:
+        console(f"{log} {steps(step, total_step)} Requesting phone number...", color)
+        while not is_vn_available:
+          try:
+            response = request_vn()
+            phone_id = response.get('activationId')
+            phone_number = f"+{response.get('phoneNumber')}"
+            is_vn_available = True
+          except Exception as e:
+            console(f"{log} {steps(step, total_step)} {e}", color=Fore.RED)
+            if "banned" in str(e):
+              console(f"{log} {steps(step, total_step)} Temporarily banned, waiting for timeout", color=Fore.RED)
+              time.sleep(6 * TIMEOUT)
+            else:
+              console(f"{log} {steps(step, total_step)} Retrying in {TIMEOUT} seconds", color=Fore.RED)
+              time.sleep(TIMEOUT)
+        step += 1
+          
+        console(f"{log} {steps(step, total_step)} Got phone number: {phone_number} with id {phone_id}", color)
+        retries = 0
+        
+        nav_chain = generate_timesteps_string(init_steps)
+        while retries < MAX_RETRY:
+          try:
+              check = client.check_phone_number(phone_number, nav_chain)
+              assert check.get("status") == "ok", "Phone number not valid"
+              if check.get("status") == "ok":
+                  break
+          except Exception as e:
+              console(f"{log} {steps(step, total_step)} try {retries} {e}", color=Fore.RED)
+              time.sleep(TIMEOUT)
+          retries += 1
+        step += 1
+        # console(f"{log} {steps(step, total_step)} Sending email to {email}", color)
+        # sent = client.send_verify_email(email)
+        # assert sent.get("email_sent"), f"{log} {steps(step, total_step)} Email not sent ({sent})"
+        
+        console(f"{log} {steps(step, total_step)} Send verification to {phone_number}", color)
+        retries = 0
+        while retries < MAX_RETRY:
+          try:
+            sent = client.send_verify_phone(phone_number, nav_chain)
+            assert sent.get("status") == "ok", "Verification not sent"
+            if sent.get("status") == "ok":
+              break
+          except Exception as e:
+            console(f"{log} {steps(step, total_step)} try {retries} {e}", color=Fore.RED)
+            time.sleep(TIMEOUT)
+          retries += 1
+        console(f"{log} {steps(step, total_step)} Verification sent to {phone_number}", color)
+        
+        step += 1
+        time.sleep(10)
+        console(f"{log} {steps(step, total_step)} Waiting for code...", color)
+        code = ''
+        # code = get_activation_status(phone_id)
+          
         try:
           code = get_activation_status(phone_id)
           if code:
             break
         except Exception as e:
-          console(f"{log} {steps(step, total_step)} {e}", color)
+          console(f"{log} {steps(step, total_step)} timeout exceeded, cancelling activation", color=Fore.RED)
           
           if phone_id:
-            console(f"{log} {steps(step, total_step)} Clean up phone number {phone_number} with id {phone_id}", color)
+            console(f"{log} {steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color)
             cancel_activation(phone_id, status)
             console(f"{log} {steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color)
           
-          console(f"{log} {steps(step, total_step)} Retry to request new phone number", color)
-          response = request_vn()
-          phone_id = response.get('activationId')
-          phone_number = f"+{response.get('phoneNumber')}"
-          console(f"{log} {steps(step, total_step)} Got phone number: {phone_number} with id {phone_id}", color)
+          console(f"{log} {steps(step, total_step)} Retrying in {TIMEOUT} seconds", color=Fore.RED)
           time.sleep(TIMEOUT)
+          step = 2
 
       # for attempt in range(1, max_attempts):
         # try:
@@ -224,7 +238,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       console(f"{log} {steps(step, total_step)} Got code: {code}", color)
       
       step += 1
-      console(f"{log} {steps(step, total_step)} Verify code: {code}", color)
+      console(f"{log} {steps(step, total_step)} Verifying code...", color)
       # signup_code = client.check_confirmation_code(email, code).get("signup_code")
       
       retries = 0
@@ -237,7 +251,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           if verification_code.get("verified"):
             break
         except Exception as e:
-          console(f"{log} {steps(step, total_step)} {e}", color)
+          console(f"{log} {steps(step, total_step)} {e}", color=Fore.RED)
           time.sleep(TIMEOUT)
         retries += 1
       status = 'success'
@@ -280,7 +294,6 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           retries += 1
       response = data["created_user"]
       
-      step += 1
       if "Instagram" in response['username']:
         console(f"{log} {steps(step, total_step)} Account banned", color)
         write_to_csv('banned.csv', account, account.keys())
@@ -301,12 +314,10 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       console(f"{log} {steps(step, total_step)} Failed to create account for {account['username']} - {e}", color=Fore.RED)
     
     finally:
-      console(f"{log} {steps(step, total_step)} Cleaning up account {account['username']}", color)
       if phone_id:
         console(f"{log} {steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color)
         cancel_activation(phone_id, status)
         console(f"{log} {steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color)
-
       else:
         console(f"{log} {steps(step, total_step)} No phone number to cancel", color)
   
