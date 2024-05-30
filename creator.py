@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from helper.sms import get_activation_status, balance_inquiry, request_quantity_of_vn, request_vn, cancel_activation
 from datetime import datetime
 from dotenv import load_dotenv
-from colorama import Fore, Style, init
+from colorama import Fore, Style
 import hashlib
 import time 
 import csv
@@ -26,7 +26,7 @@ REFERENCE_FILE = f'{REFERENCE_USERNAME}_login_reference.json'
 MAX_WORKERS = int(os.getenv('MAX_WORKERS'))
 MAX_RETRY = int(os.getenv('MAX_RETRY'))
 TIMEOUT = int(os.getenv('MAX_TIMEOUT'))
-TARGET = int(os.getenv('TARGET'), 500)
+TARGET = int(os.getenv('TARGET'))
 
 class Setting(TypedDict):
     device_setting: dict
