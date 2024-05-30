@@ -26,6 +26,7 @@ REFERENCE_FILE = f'{REFERENCE_USERNAME}_login_reference.json'
 MAX_WORKERS = int(os.getenv('MAX_WORKERS'))
 MAX_RETRY = int(os.getenv('MAX_RETRY'))
 TIMEOUT = int(os.getenv('TIMEOUT'))
+TARGET = int(os.getenv('TARGET'), 500)
 
 class Setting(TypedDict):
     device_setting: dict
@@ -340,4 +341,4 @@ def main(total):
       {executor.submit(create_account, account, index, total_account, reference): account for index, account in enumerate(accounts, start=1)}
       
 if __name__ == '__main__':
-    main(500)
+    main(TARGET)
