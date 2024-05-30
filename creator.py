@@ -1,6 +1,7 @@
 from helper.ua import get_random_user_agent
 from helper.util import init_steps, final_steps, generate_timesteps_string
 from helper.boarding import boarding
+from helper.backup import backup_data
 from instagrapi import Client
 from faker import Faker
 from typing import TypedDict, Literal
@@ -79,6 +80,10 @@ def write_to_csv(file_path, data, fieldnames):
         writer = csv.DictWriter(file, fieldnames=fieldnames, delimiter='|')
         if not file_exists:
             writer.writeheader()
+            if 'success' in file_path:
+              backup_data(fieldnames)
+        if 'success' in file_path:
+          backup_data(data)
         writer.writerow(data)
         
 def get_name_based_on_gender(gender):
