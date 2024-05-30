@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from helper.sms import get_activation_status, balance_inquiry, request_quantity_of_vn, request_vn, cancel_activation
 from datetime import datetime
 from dotenv import load_dotenv
+from colorama import Fore, Style, init
 import hashlib
 import time 
 import csv
@@ -19,7 +20,7 @@ load_dotenv()
 PROXY_A = os.getenv('PROXY_A')
 PROXY_B = os.getenv('PROXY_B')
 PROXY = os.getenv('ROTATING_PROXY')
-MAX_WORKERS = 2
+MAX_WORKERS = 5
 MAX_RETRY = 2
 TIMEOUT = 45
 REFERENCE_USERNAME = os.getenv("IG_REFERENCE_USERNAME").lower()
@@ -75,9 +76,15 @@ def get_name_based_on_gender(gender):
     else:
         return faker.name_female()    
 
+colors = [Fore.GREEN, Fore.BLUE, Fore.YELLOW, Fore.CYAN, Fore.MAGENTA]
+
+def console(message, color=Fore.WHITE):
+    print(color + message + Style.RESET_ALL)
+
 def create_account(account:Account, index:int, total_account:int, reference:AccountReference):
     global NO_AVAILABLE_NUMBERS
-    log = f"[{index}/{total_account}]"
+    color = colors[index % len(colors) - 1]
+    log = f"[{time.strftime('%Y-%m-%d %H:%M:%S')} - {index}/{total_account}]"
     step = 1
     total_step = 9
     # wait_seconds = 5
@@ -89,7 +96,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       random.choice([PROXY_A, PROXY_B]) if PROXY_A and PROXY_B else PROXY
     )
     client.set_user_agent(account['setting']['user_agent'])
-    print(f"{log} {account['username']} using {account['setting']['user_agent']}")
+    console(f"{log} {account['username']} using {account['setting']['user_agent']}", color)
     client.device_id = "android-%s" % hashlib.sha256(str(time.time()).encode()).hexdigest()[:16]
     email = f"{account['username']}@inboxkitten.com"
     phone_number = ""
@@ -105,11 +112,11 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       if vn_quantity < MAX_WORKERS:
         raise Exception(f"Insufficient quantity of phone number: {vn_quantity}")
       
-      print(f"{log} {steps(step, total_step)} Checking phone number availability with balance {sms_balance} and quantity {vn_quantity}")
+      console(f"{log} {steps(step, total_step)} Checking phone number availability with balance {sms_balance} and quantity {vn_quantity}", color)
       
       
       step += 1
-      print(f"{log} {steps(step, total_step)} Check credential for {account['username']}")
+      console(f"{log} {steps(step, total_step)} Check credential for {account['username']}", color)
       
       client.get_signup_config()
       check = client.check_username(account['username'])
@@ -129,7 +136,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
         phone_number = f"+{response.get('phoneNumber')}"
       step += 1
         
-      print(f"{log} {steps(step, total_step)} Requested phone number: {phone_number} with id {phone_id}")
+      console(f"{log} {steps(step, total_step)} Requested phone number: {phone_number} with id {phone_id}", color)
       retries = 0
       
       nav_chain = generate_timesteps_string(init_steps)
@@ -140,15 +147,15 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
             if check.get("status") == "ok":
                 break
         except Exception as e:
-            print(f"{log} {steps(step, total_step)} try {retries} {e}")
+            console(f"{log} {steps(step, total_step)} try {retries} {e}", color)
             time.sleep(TIMEOUT)
         retries += 1
       step += 1
-      # print(f"{log} {steps(step, total_step)} Sending email to {email}")
+      # console(f"{log} {steps(step, total_step)} Sending email to {email}", color)
       # sent = client.send_verify_email(email)
       # assert sent.get("email_sent"), f"{log} {steps(step, total_step)} Email not sent ({sent})"
       
-      print(f"{log} {steps(step, total_step)} Sending verification to {phone_number}")
+      console(f"{log} {steps(step, total_step)} Sending verification to {phone_number}", color)
       retries = 0
       while retries < MAX_RETRY:
         try:
@@ -157,21 +164,21 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           if sent.get("status") == "ok":
             break
         except Exception as e:
-          print(f"{log} {steps(step, total_step)} try {retries} {e}")
+          console(f"{log} {steps(step, total_step)} try {retries} {e}", color)
           time.sleep(TIMEOUT)
         retries += 1
       
       step += 1
       time.sleep(10)
-      print(f"{log} {steps(step, total_step)} Getting code from sms")
+      console(f"{log} {steps(step, total_step)} Getting code from sms", color)
       code = get_activation_status(phone_id)
 
       # for attempt in range(1, max_attempts):
         # try:
         #   code = get_code(email)
-        #   print(f"{log} {steps(step, total_step)} Got code: {code}, attempt {attempt}")
+        #   console(f"{log} {steps(step, total_step)} Got code: {code}, attempt {attempt}", color)
         # except Exception as e:
-        #   print(f"{log} {steps(step, total_step)} {e}: attempt {attempt}")
+        #   console(f"{log} {steps(step, total_step)} {e}: attempt {attempt}", color)
         # if code:
         #   break
         # time.sleep(wait_seconds * attempt)
@@ -179,7 +186,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       if not code:
         raise Exception(f"{log} {steps(step, total_step)} Failed to get code")
       step += 1
-      print(f"{log} {steps(step, total_step)} Verifying code: {code}")
+      console(f"{log} {steps(step, total_step)} Verifying code: {code}", color)
       # signup_code = client.check_confirmation_code(email, code).get("signup_code")
       
       retries = 0
@@ -192,7 +199,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           if verification_code.get("verified"):
             break
         except Exception as e:
-          print(f"{log} {steps(step, total_step)} {e}")
+          console(f"{log} {steps(step, total_step)} {e}", color)
           time.sleep(TIMEOUT)
         retries += 1
       status = 'success'
@@ -216,12 +223,10 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       }
       
       while retries < MAX_RETRY:
-          # print(f"{log} {steps(step, total_step)} Creating account with signup code: {signup_code}")
-          print(f"{log} {steps(step, total_step)} Creating account with verification code: {code}")
+          # console(f"{log} {steps(step, total_step)} Creating account with signup code: {signup_code}", color)
+          console(f"{log} {steps(step, total_step)} Creating account with verification code: {code}", color)
           try:
             data = client.accounts_create(**kwargs)
-            if data.get("message") == "feedback_required":
-                raise Exception("Feedback required, might be detected as spam")
             if data.get("message") != "challenge_required":
                 break
             if client.challenge_flow(data["challenge"]):
@@ -229,40 +234,41 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
             if data['created_user']:
                 break
           except Exception as e:
-            print(f"{log} {steps(step, total_step)} try {retries} {e}")
+            if "feedback_required" in str(e):
+                raise Exception("Feedback required, might be detected as spam")
             time.sleep(TIMEOUT)
           retries += 1
       response = data["created_user"]
       
       step += 1
       if "Instagram" in response['username']:
-        print(f"{log} {steps(step, total_step)} Account banned")
+        console(f"{log} {steps(step, total_step)} Account banned", color)
         write_to_csv('banned.csv', account, account.keys())
         return data
       write_to_csv('success.csv', account, account.keys())
-      print(f"{log} {steps(step, total_step)} Successfully created account for {response['username']} with id {response['pk']} and full name {response['full_name']}")
+      console(f"{log} {steps(step, total_step)} Successfully created account for {response['username']} with id {response['pk']} and full name {response['full_name']}", color)
       step += 1
       client.login(account['username'], account['password'])
-      print(f"{log} {steps(step, total_step)} Boarding profile for {account['username']}")
+      console(f"{log} {steps(step, total_step)} Boarding profile for {account['username']}", color)
       boarding(client, account['gender'])
-      print(f"{log} {steps(step, total_step)} Success boarding for {account['username']}")
+      console(f"{log} {steps(step, total_step)} Success boarding for {account['username']}", color)
       client.logout()
       return data
   
     except Exception as e:
-      if "No available numbers" in str(e) or "Insufficient quantity" in str(e):
-        NO_AVAILABLE_NUMBERS = True
-      print(f"{log} {steps(step, total_step)} Failed to create account for {account['username']} - {e}")
+      # if "No available numbers" in str(e) or "Insufficient quantity" in str(e):
+        # NO_AVAILABLE_NUMBERS = True
+      console(f"{log} {steps(step, total_step)} Failed to create account for {account['username']} - {e}", color=Fore.RED)
     
     finally:
-      print(f"{log} {steps(step, total_step)} Cleaning up account {account['username']}")
+      console(f"{log} {steps(step, total_step)} Cleaning up account {account['username']}", color)
       if phone_id:
-        print(f"{log} {steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}")
+        console(f"{log} {steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color)
         cancel_activation(phone_id, status)
-        print(f"{log} {steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}")
+        console(f"{log} {steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color)
 
       else:
-        print(f"{log} {steps(step, total_step)} No phone number to cancel")
+        console(f"{log} {steps(step, total_step)} No phone number to cancel", color)
   
 def main(total):
   total_account = total
@@ -312,7 +318,7 @@ def main(total):
       save_reference(reference)
   
   print(f"Creating {total_account} accounts with reference {client.authorization_data['ds_user_id']} {client.username}")
-  
+
   reference = AccountReference(user_id=client.authorization_data['ds_user_id'], autorization=client.authorization)
   with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
       {executor.submit(create_account, account, index, total_account, reference): account for index, account in enumerate(accounts, start=1)}

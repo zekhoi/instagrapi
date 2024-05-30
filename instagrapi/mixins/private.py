@@ -166,8 +166,8 @@ class PrivateRequestMixin:
             "X-IG-Android-ID": self.android_device_id,
             "X-IG-Timezone-Offset": "0",
             # "X-IG-Timezone-Offset": str(self.timezone_offset),
-            "X-IG-Connection-Type": random.choice(["4G LTE"]),
-            # "X-FB-Connection-Type": random.choice(["4G LTE"]),
+            "X-IG-Connection-Type": "MOBILE(LTE)",
+            "X-FB-Connection-Type": "MOBILE.LTE",
             "X-FB-Capabilities": "3brTv10=",  # "3brTvwE=" in instabot
             "X-IG-App-ID": self.app_id,
             "Priority": "u=3",
