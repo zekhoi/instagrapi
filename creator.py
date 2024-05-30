@@ -20,13 +20,12 @@ load_dotenv()
 PROXY_A = os.getenv('PROXY_A')
 PROXY_B = os.getenv('PROXY_B')
 PROXY = os.getenv('ROTATING_PROXY')
-MAX_WORKERS = 5
-MAX_RETRY = 2
-TIMEOUT = 45
 REFERENCE_USERNAME = os.getenv("IG_REFERENCE_USERNAME").lower()
 REFERENCE_PASSWORD = os.getenv("IG_REFERENCE_PASSWORD")
 REFERENCE_FILE = f'{REFERENCE_USERNAME}_login_reference.json'
-NO_AVAILABLE_NUMBERS = False
+MAX_WORKERS = int(os.getenv('MAX_WORKERS'))
+MAX_RETRY = int(os.getenv('MAX_RETRY'))
+TIMEOUT = int(os.getenv('TIMEOUT'))
 
 class Setting(TypedDict):
     device_setting: dict
@@ -82,7 +81,6 @@ def console(message, color=Fore.WHITE):
     print(color + message + Style.RESET_ALL)
 
 def create_account(account:Account, index:int, total_account:int, reference:AccountReference):
-    global NO_AVAILABLE_NUMBERS
     color = colors[index % len(colors) - 1]
     log = f"[{time.strftime('%Y-%m-%d %H:%M:%S')} - {index}/{total_account}]"
     step = 1
@@ -103,17 +101,20 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
     phone_id = ""
     status = 'failed'
     try:
-      if NO_AVAILABLE_NUMBERS:
-        raise Exception("Skipping account creation due to no available numbers")
       sms_balance = balance_inquiry()
       
       vn_quantity = request_quantity_of_vn()
       
-      if vn_quantity < MAX_WORKERS:
-        raise Exception(f"Insufficient quantity of phone number: {vn_quantity}")
+      while vn_quantity < MAX_WORKERS:
+        try:
+          vn_quantity = request_quantity_of_vn()
+          if vn_quantity >= MAX_WORKERS:
+            break
+        except Exception as e:
+          console(f"{log} {steps(step, total_step)} {e}", color=Fore.RED)
+          time.sleep(TIMEOUT)
       
-      console(f"{log} {steps(step, total_step)} Checking phone number availability with balance {sms_balance} and quantity {vn_quantity}", color)
-      
+      console(f"{log} {steps(step, total_step)} Check phone number availability with balance {sms_balance} and quantity {vn_quantity}", color)
       
       step += 1
       console(f"{log} {steps(step, total_step)} Check credential for {account['username']}", color)
@@ -121,22 +122,32 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       client.get_signup_config()
       check = client.check_username(account['username'])
       assert check.get("available"), "Username not available"
+      console(f"{log} {steps(step, total_step)} Username available", color)
       
       
       # check = client.check_email(email)
       # assert check.get("valid"), f"{log} {steps(step, total_step)} Email not valid ({check})"
       # assert check.get("available"), f"{log} {steps(step, total_step)} Email not available ({check})"
       
-      
-      if sms_balance < 20:
-        raise Exception(f"Insufficient balance: {sms_balance}")
-      else:
-        response = request_vn()
-        phone_id = response.get('activationId')
-        phone_number = f"+{response.get('phoneNumber')}"
+      # if sms_balance < 20:
+      #   raise Exception(f"Insufficient balance: {sms_balance}")
+      # else:
+      #   response = request_vn()
+      #   phone_id = response.get('activationId')
+      #   phone_number = f"+{response.get('phoneNumber')}"
+      is_vn_available = False
+      while not is_vn_available:
+        try:
+          response = request_vn()
+          phone_id = response.get('activationId')
+          phone_number = f"+{response.get('phoneNumber')}"
+          is_vn_available = True
+        except Exception as e:
+          console(f"{log} {steps(step, total_step)} {e}", color=Fore.RED)
+          time.sleep(TIMEOUT)
       step += 1
         
-      console(f"{log} {steps(step, total_step)} Requested phone number: {phone_number} with id {phone_id}", color)
+      console(f"{log} {steps(step, total_step)} Got phone number: {phone_number} with id {phone_id}", color)
       retries = 0
       
       nav_chain = generate_timesteps_string(init_steps)
@@ -155,7 +166,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       # sent = client.send_verify_email(email)
       # assert sent.get("email_sent"), f"{log} {steps(step, total_step)} Email not sent ({sent})"
       
-      console(f"{log} {steps(step, total_step)} Sending verification to {phone_number}", color)
+      console(f"{log} {steps(step, total_step)} Send verification to {phone_number}", color)
       retries = 0
       while retries < MAX_RETRY:
         try:
@@ -167,6 +178,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           console(f"{log} {steps(step, total_step)} try {retries} {e}", color)
           time.sleep(TIMEOUT)
         retries += 1
+      console(f"{log} {steps(step, total_step)} Verification sent to {phone_number}", color)
       
       step += 1
       time.sleep(10)
@@ -185,8 +197,10 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
 
       if not code:
         raise Exception(f"{log} {steps(step, total_step)} Failed to get code")
+      console(f"{log} {steps(step, total_step)} Got code: {code}", color)
+      
       step += 1
-      console(f"{log} {steps(step, total_step)} Verifying code: {code}", color)
+      console(f"{log} {steps(step, total_step)} Verify code: {code}", color)
       # signup_code = client.check_confirmation_code(email, code).get("signup_code")
       
       retries = 0
@@ -203,6 +217,8 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           time.sleep(TIMEOUT)
         retries += 1
       status = 'success'
+      console(f"{log} {steps(step, total_step)} Code verified", color)
+      
       step += 1
       
       retries = 0
@@ -224,7 +240,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       
       while retries < MAX_RETRY:
           # console(f"{log} {steps(step, total_step)} Creating account with signup code: {signup_code}", color)
-          console(f"{log} {steps(step, total_step)} Creating account with verification code: {code}", color)
+          console(f"{log} {steps(step, total_step)} Create account with code: {code}", color)
           try:
             data = client.accounts_create(**kwargs)
             if data.get("message") != "challenge_required":
@@ -256,8 +272,8 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       return data
   
     except Exception as e:
-      # if "No available numbers" in str(e) or "Insufficient quantity" in str(e):
-        # NO_AVAILABLE_NUMBERS = True
+      if 'created_user' in str(e):
+        write_to_csv('banned.csv', account, account.keys())
       console(f"{log} {steps(step, total_step)} Failed to create account for {account['username']} - {e}", color=Fore.RED)
     
     finally:
