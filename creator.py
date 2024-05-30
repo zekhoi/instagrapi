@@ -221,7 +221,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           
           console(f"{log} {steps(step, total_step)} Retrying in {TIMEOUT} seconds", color=Fore.RED)
           time.sleep(TIMEOUT)
-          step = 2
+          step = 3
 
       # for attempt in range(1, max_attempts):
         # try:
