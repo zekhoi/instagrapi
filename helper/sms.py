@@ -56,7 +56,6 @@ def get_activation_status(id, count=1):
         f'https://api.sms-activate.org/stubs/handler_api.php?api_key={API_KEY}&action=getStatus&id={id}'
     )
     status = response.text
-    print(f"Activation status: {status},  count: ({count})")
     count += 1
     if 'STATUS_WAIT' in status:
         time.sleep(60)  # every one minute
@@ -76,7 +75,6 @@ def cancel_activation(id, status='failed'):
         f'https://api.sms-activate.org/stubs/handler_api.php?api_key={API_KEY}&action=setStatus&status={code_status}&id={id}'
     )
     if 'DENIED' in response.text:
-        print(f'Activation {id} cannot be canceled before 2 minutes')
         time.sleep(150)
         return cancel_activation(id)
     return response.text
