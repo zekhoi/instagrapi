@@ -89,12 +89,12 @@ def get_name_based_on_gender(gender):
 
 colors = [Fore.GREEN, Fore.BLUE, Fore.YELLOW, Fore.CYAN, Fore.MAGENTA]
 
-def console(message, color=Fore.WHITE):
-    print(color + message + Style.RESET_ALL)
+def console(message, color=Fore.WHITE, index=0, total_account=0):
+    log = f"[{time.strftime('%Y-%m-%d %H:%M:%S')} - {index}/{total_account}]"
+    print(color + log + message + Style.RESET_ALL)
 
 def create_account(account:Account, index:int, total_account:int, reference:AccountReference):
     color = colors[index % len(colors) - 1]
-    log = f"[{time.strftime('%Y-%m-%d %H:%M:%S')} - {index}/{total_account}]"
     step = 1
     total_step = 8
     # wait_seconds = 5
@@ -106,14 +106,14 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       random.choice([PROXY_A, PROXY_B]) if PROXY_A and PROXY_B else PROXY
     )
     client.set_user_agent(account['setting']['user_agent'])
-    console(f"{log} {account['username']} using {account['setting']['user_agent']}", color)
+    console(f"{account['username']} using {account['setting']['user_agent']}", color, index, total_account)
     client.device_id = "android-%s" % hashlib.sha256(str(time.time()).encode()).hexdigest()[:16]
     email = f"{account['username']}@inboxkitten.com"
     phone_number = ""
     phone_id = ""
     status = 'failed'
     try:
-      console(f"{log} {steps(step, total_step)} Checking availablity balance and quantity for phone number...", color)
+      console(f"{steps(step, total_step)} Checking availablity balance and quantity for phone number...", color, index, total_account)
       sms_balance = balance_inquiry()
       
       vn_quantity = request_quantity_of_vn()
@@ -124,23 +124,23 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           if vn_quantity >= MAX_WORKERS:
             break
         except Exception as e:
-          console(f"{log} {steps(step, total_step)} {e}", color=Fore.RED)
+          console(f"{steps(step, total_step)} {e}", color=Fore.RED, index=index, total_account=total_account)
           time.sleep(TIMEOUT)
       
-      console(f"{log} {steps(step, total_step)} Available with balance {sms_balance} and quantity {vn_quantity}", color)
+      console(f"{steps(step, total_step)} Available with balance {sms_balance} and quantity {vn_quantity}", color, index, total_account)
       
       step += 1
-      console(f"{log} {steps(step, total_step)} Checking credential for {account['username']}...", color)
+      console(f"{steps(step, total_step)} Checking credential for {account['username']}...", color, index, total_account)
       
       client.get_signup_config()
       check = client.check_username(account['username'])
       assert check.get("available"), "Username not available"
-      console(f"{log} {steps(step, total_step)} Username available", color)
+      console(f"{steps(step, total_step)} Username available", color, index, total_account)
       
       
       # check = client.check_email(email)
-      # assert check.get("valid"), f"{log} {steps(step, total_step)} Email not valid ({check})"
-      # assert check.get("available"), f"{log} {steps(step, total_step)} Email not available ({check})"
+      # assert check.get("valid"), f"{steps(step, total_step)} Email not valid ({check})"
+      # assert check.get("available"), f"{steps(step, total_step)} Email not available ({check})"
       
       # if sms_balance < 20:
       #   raise Exception(f"Insufficient balance: {sms_balance}")
@@ -151,7 +151,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       is_vn_available = False
       code = ''
       while not code:
-        console(f"{log} {steps(step, total_step)} Requesting phone number...", color)
+        console(f"{steps(step, total_step)} Requesting phone number...", color, index, total_account)
         while not is_vn_available:
           try:
             response = request_vn()
@@ -159,16 +159,16 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
             phone_number = f"+{response.get('phoneNumber')}"
             is_vn_available = True
           except Exception as e:
-            console(f"{log} {steps(step, total_step)} {e}", color=Fore.RED)
+            console(f"{steps(step, total_step)} {e}", color=Fore.RED, index=index, total_account=total_account)
             if "banned" in str(e):
-              console(f"{log} {steps(step, total_step)} Temporarily banned, waiting for timeout", color=Fore.RED)
+              console(f"{steps(step, total_step)} Temporarily banned, waiting for timeout", color=Fore.RED, index=index, total_account=total_account)
               time.sleep(6 * TIMEOUT)
             else:
-              console(f"{log} {steps(step, total_step)} Retrying in {TIMEOUT} seconds", color=Fore.RED)
+              console(f"{steps(step, total_step)} Retrying in {TIMEOUT} seconds", color=Fore.RED, index=index, total_account=total_account)
               time.sleep(TIMEOUT)
         step += 1
           
-        console(f"{log} {steps(step, total_step)} Got phone number: {phone_number} with id {phone_id}", color)
+        console(f"{steps(step, total_step)} Got phone number: {phone_number} with id {phone_id}", color, index, total_account)
         retries = 0
         
         nav_chain = generate_timesteps_string(init_steps)
@@ -179,15 +179,15 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
               if check.get("status") == "ok":
                   break
           except Exception as e:
-              console(f"{log} {steps(step, total_step)} try {retries} {e}", color=Fore.RED)
+              console(f"{steps(step, total_step)} try {retries} {e}", color=Fore.RED, index=index, total_account=total_account)
               time.sleep(TIMEOUT)
           retries += 1
         step += 1
-        # console(f"{log} {steps(step, total_step)} Sending email to {email}", color)
+        # console(f"{steps(step, total_step)} Sending email to {email}", color, index, total_account)
         # sent = client.send_verify_email(email)
-        # assert sent.get("email_sent"), f"{log} {steps(step, total_step)} Email not sent ({sent})"
+        # assert sent.get("email_sent"), f"{steps(step, total_step)} Email not sent ({sent})"
         
-        console(f"{log} {steps(step, total_step)} Send verification to {phone_number}", color)
+        console(f"{steps(step, total_step)} Send verification to {phone_number}", color, index, total_account)
         retries = 0
         while retries < MAX_RETRY:
           try:
@@ -196,14 +196,14 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
             if sent.get("status") == "ok":
               break
           except Exception as e:
-            console(f"{log} {steps(step, total_step)} try {retries} {e}", color=Fore.RED)
+            console(f"{steps(step, total_step)} try {retries} {e}", color=Fore.RED, index=index, total_account=total_account)
             time.sleep(TIMEOUT)
           retries += 1
-        console(f"{log} {steps(step, total_step)} Verification sent to {phone_number}", color)
+        console(f"{steps(step, total_step)} Verification sent to {phone_number}", color, index, total_account)
         
         step += 1
         time.sleep(10)
-        console(f"{log} {steps(step, total_step)} Waiting for code...", color)
+        console(f"{steps(step, total_step)} Waiting for code...", color, index, total_account)
         code = ''
         # code = get_activation_status(phone_id)
           
@@ -212,33 +212,33 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           if code:
             break
         except Exception as e:
-          console(f"{log} {steps(step, total_step)} timeout exceeded, cancelling activation", color=Fore.RED)
+          console(f"{steps(step, total_step)} timeout exceeded, cancelling activation", color=Fore.RED, index=index, total_account=total_account)
           
           if phone_id:
-            console(f"{log} {steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color)
+            console(f"{steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color, index, total_account)
             cancel_activation(phone_id, status)
-            console(f"{log} {steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color)
+            console(f"{steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color, index, total_account)
           
-          console(f"{log} {steps(step, total_step)} Retrying in {TIMEOUT} seconds", color=Fore.RED)
+          console(f"{steps(step, total_step)} Retrying in {TIMEOUT} seconds", color=Fore.RED, index=index, total_account=total_account)
           time.sleep(TIMEOUT)
           step = 3
 
       # for attempt in range(1, max_attempts):
         # try:
         #   code = get_code(email)
-        #   console(f"{log} {steps(step, total_step)} Got code: {code}, attempt {attempt}", color)
+        #   console(f"{steps(step, total_step)} Got code: {code}, attempt {attempt}", color, index, total_account)
         # except Exception as e:
-        #   console(f"{log} {steps(step, total_step)} {e}: attempt {attempt}", color)
+        #   console(f"{steps(step, total_step)} {e}: attempt {attempt}", color, index, total_account)
         # if code:
         #   break
         # time.sleep(wait_seconds * attempt)
 
       if not code:
-        raise Exception(f"{log} {steps(step, total_step)} Failed to get code")
-      console(f"{log} {steps(step, total_step)} Got code: {code}", color)
+        raise Exception(f"{steps(step, total_step)} Failed to get code")
+      console(f"{steps(step, total_step)} Got code: {code}", color, index, total_account)
       
       step += 1
-      console(f"{log} {steps(step, total_step)} Verifying code...", color)
+      console(f"{steps(step, total_step)} Verifying code...", color, index, total_account)
       # signup_code = client.check_confirmation_code(email, code).get("signup_code")
       
       retries = 0
@@ -251,11 +251,11 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
           if verification_code.get("verified"):
             break
         except Exception as e:
-          console(f"{log} {steps(step, total_step)} {e}", color=Fore.RED)
+          console(f"{steps(step, total_step)} {e}", color=Fore.RED, index=index, total_account=total_account)
           time.sleep(TIMEOUT)
         retries += 1
       status = 'success'
-      console(f"{log} {steps(step, total_step)} Code verified", color)
+      console(f"{steps(step, total_step)} Code verified", color, index, total_account)
       
       step += 1
       
@@ -277,8 +277,8 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       }
       
       while retries < MAX_RETRY:
-          # console(f"{log} {steps(step, total_step)} Creating account with signup code: {signup_code}", color)
-          console(f"{log} {steps(step, total_step)} Create account with code: {code}", color)
+          # console(f"{steps(step, total_step)} Creating account with signup code: {signup_code}", color, index, total_account)
+          console(f"{steps(step, total_step)} Create account with code: {code}", color, index, total_account)
           try:
             data = client.accounts_create(**kwargs)
             if data.get("message") != "challenge_required":
@@ -295,31 +295,31 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       response = data["created_user"]
       
       if "Instagram" in response['username']:
-        console(f"{log} {steps(step, total_step)} Account banned", color)
+        console(f"{steps(step, total_step)} Account banned", color, index, total_account)
         write_to_csv('banned.csv', account, account.keys())
         return data
       write_to_csv('success.csv', account, account.keys())
-      console(f"{log} {steps(step, total_step)} Successfully created account for {response['username']} with id {response['pk']} and full name {response['full_name']}", color)
+      console(f"{steps(step, total_step)} Successfully created account for {response['username']} with id {response['pk']} and full name {response['full_name']}", color, index, total_account)
       step += 1
       client.login(account['username'], account['password'])
-      console(f"{log} {steps(step, total_step)} Boarding profile for {account['username']}", color)
+      console(f"{steps(step, total_step)} Boarding profile for {account['username']}", color, index, total_account)
       boarding(client, account['gender'])
-      console(f"{log} {steps(step, total_step)} Success boarding for {account['username']}", color)
+      console(f"{steps(step, total_step)} Success boarding for {account['username']}", color, index, total_account)
       client.logout()
       return data
   
     except Exception as e:
       if 'created_user' in str(e):
         write_to_csv('banned.csv', account, account.keys())
-      console(f"{log} {steps(step, total_step)} Failed to create account for {account['username']} - {e}", color=Fore.RED)
+      console(f"{steps(step, total_step)} Failed to create account for {account['username']} - {e}", color=Fore.RED, index=index, total_account=total_account)
     
     finally:
       if phone_id:
-        console(f"{log} {steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color)
+        console(f"{steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color, index, total_account)
         cancel_activation(phone_id, status)
-        console(f"{log} {steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color)
+        console(f"{steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color, index, total_account)
       else:
-        console(f"{log} {steps(step, total_step)} No phone number to cancel", color)
+        console(f"{steps(step, total_step)} No phone number to cancel", color, index, total_account)
   
 def main(total):
   total_account = total
