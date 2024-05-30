@@ -213,7 +213,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
             break
         except Exception as e:
           console(f"{steps(step, total_step)} timeout exceeded, cancelling activation", color=Fore.RED, index=index, total_account=total_account)
-          
+          is_vn_available = False
           if phone_id:
             console(f"{steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color, index, total_account)
             cancel_activation(phone_id, status)
