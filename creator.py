@@ -25,7 +25,7 @@ REFERENCE_PASSWORD = os.getenv("IG_REFERENCE_PASSWORD")
 REFERENCE_FILE = f'{REFERENCE_USERNAME}_login_reference.json'
 MAX_WORKERS = int(os.getenv('MAX_WORKERS'))
 MAX_RETRY = int(os.getenv('MAX_RETRY'))
-TIMEOUT = int(os.getenv('TIMEOUT'))
+TIMEOUT = int(os.getenv('MAX_TIMEOUT'))
 TARGET = int(os.getenv('TARGET'), 500)
 
 class Setting(TypedDict):
