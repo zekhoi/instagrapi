@@ -3,3 +3,5 @@ PySocks==1.7.1
 pydantic==2.7.1
 moviepy==1.0.3
 pycryptodomex==3.20.0
+gspread==6.1.2
+python-unsplash==1.2.5
