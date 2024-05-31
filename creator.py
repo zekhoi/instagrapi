@@ -65,6 +65,9 @@ def load_reference():
 def write_to_csv(file_path, data, fieldnames):
     folder_path = f"result/{datetime.now().strftime('%d-%m-%Y')}"
     file_path = f"{folder_path}/{file_path}"
+            
+    file_exists = os.path.exists(os.path.join(os.path.dirname(__file__), file_path))
+    
     if not os.path.exists(os.path.join(os.path.dirname(__file__), 'result')):
         os.makedirs(os.path.join(os.path.dirname(__file__), 'result'))
     if not os.path.exists(os.path.join(os.path.dirname(__file__), folder_path)):
@@ -73,8 +76,6 @@ def write_to_csv(file_path, data, fieldnames):
         with open(os.path.join(os.path.dirname(__file__), file_path), 'w', newline='') as file:
             writer = csv.DictWriter(file, fieldnames=fieldnames, delimiter='|')
             writer.writeheader()
-            
-    file_exists = os.path.exists(os.path.join(os.path.dirname(__file__), file_path))
       
     with open(os.path.join(os.path.dirname(__file__), file_path), 'a', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames, delimiter='|')
