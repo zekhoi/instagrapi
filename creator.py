@@ -72,17 +72,14 @@ def write_to_csv(file_path, data, fieldnames):
         os.makedirs(os.path.join(os.path.dirname(__file__), 'result'))
     if not os.path.exists(os.path.join(os.path.dirname(__file__), folder_path)):
         os.makedirs(os.path.join(os.path.dirname(__file__), folder_path))
-    if not os.path.exists(os.path.join(os.path.dirname(__file__), file_path)):
+    if not file_exists:
         with open(os.path.join(os.path.dirname(__file__), file_path), 'w', newline='') as file:
             writer = csv.DictWriter(file, fieldnames=fieldnames, delimiter='|')
             writer.writeheader()
+            backup_data(fieldnames)
       
-    with open(os.path.join(os.path.dirname(__file__), file_path), 'a', newline='') as file:
+    with open(file_path, 'a', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames, delimiter='|')
-        if not file_exists:
-            writer.writeheader()
-            if 'success' in file_path:
-              backup_data(fieldnames)
         if 'success' in file_path:
           backup_data(data)
         writer.writerow(data)

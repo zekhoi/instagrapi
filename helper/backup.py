@@ -18,7 +18,7 @@ def detect_range(data: list, row: int = 1) -> str:
 
 def backup_data(data:dict):
     today_date = time.strftime("%d-%m-%Y", time.localtime(time.time()))
-    data = list(data.values())
+    data = list(data.values()) if isinstance(data, dict) else data
     data = [str(i) for i in data]
     try:
         worksheet = spreadsheet.worksheet(today_date)
