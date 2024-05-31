@@ -224,7 +224,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
             console(f"{steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color, index, total_account)
             cancel_activation(phone_id, status)
             console(f"{steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color, index, total_account)
-          step = 3
+          step = 2
 
       # for attempt in range(1, max_attempts):
         # try:
