@@ -6,3 +6,5 @@ pycryptodomex==3.20.0
 gspread==6.1.2
 python-unsplash==1.2.5
 Faker==25.2.0
+python-dotenv==1.0.1
+colorama==0.4.6
