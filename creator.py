@@ -153,76 +153,71 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
       #   phone_number = f"+{response.get('phoneNumber')}"
       is_vn_available = False
       code = ''
-      while not code:
-        time.sleep(TIMEOUT)
-        console(f"{steps(step, total_step)} Requesting phone number...", color, index, total_account)
-        while not is_vn_available:
-          try:
-            response = request_vn()
-            phone_id = response.get('activationId')
-            phone_number = f"+{response.get('phoneNumber')}"
-            is_vn_available = True
-          except Exception as e:
-            console(f"{steps(step, total_step)} {e}", color=Fore.RED, index=index, total_account=total_account)
-            if "banned" in str(e):
-              console(f"{steps(step, total_step)} Temporarily banned, waiting for timeout", color=Fore.RED, index=index, total_account=total_account)
-              time.sleep(6 * TIMEOUT)
-            else:
-              console(f"{steps(step, total_step)} Retrying in {TIMEOUT} seconds", color=Fore.RED, index=index, total_account=total_account)
-              time.sleep(TIMEOUT)
-        step += 1
-          
-        console(f"{steps(step, total_step)} Got phone number: {phone_number} with id {phone_id}", color, index, total_account)
-        retries = 0
+      console(f"{steps(step, total_step)} Requesting phone number...", color, index, total_account)
+      while not is_vn_available:
+        try:
+          response = request_vn()
+          phone_id = response.get('activationId')
+          phone_number = f"+{response.get('phoneNumber')}"
+          is_vn_available = True
+        except Exception as e:
+          console(f"{steps(step, total_step)} {e}", color=Fore.RED, index=index, total_account=total_account)
+          if "banned" in str(e):
+            console(f"{steps(step, total_step)} Temporarily banned, waiting for timeout", color=Fore.RED, index=index, total_account=total_account)
+            time.sleep(6 * TIMEOUT)
+          else:
+            console(f"{steps(step, total_step)} Retrying in {TIMEOUT} seconds", color=Fore.RED, index=index, total_account=total_account)
+            time.sleep(TIMEOUT)
+      step += 1
         
-        nav_chain = generate_timesteps_string(init_steps)
-        while retries < MAX_RETRY:
-          try:
-              check = client.check_phone_number(phone_number, nav_chain)
-              assert check.get("status") == "ok", "Phone number not valid"
-              if check.get("status") == "ok":
-                  break
-          except Exception as e:
-              console(f"{steps(step, total_step)} try {retries} {e}", color=Fore.RED, index=index, total_account=total_account)
-              time.sleep(TIMEOUT)
-          retries += 1
-        step += 1
-        # console(f"{steps(step, total_step)} Sending email to {email}", color, index, total_account)
-        # sent = client.send_verify_email(email)
-        # assert sent.get("email_sent"), f"{steps(step, total_step)} Email not sent ({sent})"
-        
-        console(f"{steps(step, total_step)} Send verification to {phone_number}", color, index, total_account)
-        retries = 0
-        while retries < MAX_RETRY:
-          try:
-            sent = client.send_verify_phone(phone_number, nav_chain)
-            assert sent.get("status") == "ok", "Verification not sent"
-            if sent.get("status") == "ok":
-              break
-          except Exception as e:
+      console(f"{steps(step, total_step)} Got phone number: {phone_number} with id {phone_id}", color, index, total_account)
+      retries = 0
+      
+      nav_chain = generate_timesteps_string(init_steps)
+      while retries < MAX_RETRY:
+        try:
+            check = client.check_phone_number(phone_number, nav_chain)
+            assert check.get("status") == "ok", "Phone number not valid"
+            if check.get("status") == "ok":
+                break
+        except Exception as e:
             console(f"{steps(step, total_step)} try {retries} {e}", color=Fore.RED, index=index, total_account=total_account)
             time.sleep(TIMEOUT)
-          retries += 1
-        console(f"{steps(step, total_step)} Verification sent to {phone_number}", color, index, total_account)
-        
-        step += 1
-        time.sleep(10)
-        console(f"{steps(step, total_step)} Waiting for code...", color, index, total_account)
-        code = ''
-        # code = get_activation_status(phone_id)
-          
+        retries += 1
+      step += 1
+      # console(f"{steps(step, total_step)} Sending email to {email}", color, index, total_account)
+      # sent = client.send_verify_email(email)
+      # assert sent.get("email_sent"), f"{steps(step, total_step)} Email not sent ({sent})"
+      
+      console(f"{steps(step, total_step)} Send verification to {phone_number}", color, index, total_account)
+      retries = 0
+      while retries < MAX_RETRY:
         try:
-          code = get_activation_status(phone_id)
-          if code:
+          sent = client.send_verify_phone(phone_number, nav_chain)
+          assert sent.get("status") == "ok", "Verification not sent"
+          if sent.get("status") == "ok":
             break
         except Exception as e:
-          console(f"{steps(step, total_step)} timeout exceeded, cancelling activation", color=Fore.RED, index=index, total_account=total_account)
-          is_vn_available = False
-          if phone_id:
-            console(f"{steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color, index, total_account)
-            cancel_activation(phone_id, status)
-            console(f"{steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color, index, total_account)
-          step = 2
+          console(f"{steps(step, total_step)} try {retries} {e}", color=Fore.RED, index=index, total_account=total_account)
+          time.sleep(TIMEOUT)
+        retries += 1
+      console(f"{steps(step, total_step)} Verification sent to {phone_number}", color, index, total_account)
+      
+      step += 1
+      time.sleep(10)
+      console(f"{steps(step, total_step)} Waiting for code...", color, index, total_account)
+      code = ''
+      # code = get_activation_status(phone_id)
+        
+      try:
+        code = get_activation_status(phone_id)
+      except Exception as e:
+        console(f"{steps(step, total_step)} timeout exceeded, cancelling activation", color=Fore.RED, index=index, total_account=total_account)
+        is_vn_available = False
+        if phone_id:
+          console(f"{steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color, index, total_account)
+          cancel_activation(phone_id, status)
+          console(f"{steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color, index, total_account)
 
       # for attempt in range(1, max_attempts):
         # try:
