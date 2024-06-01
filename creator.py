@@ -213,11 +213,6 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
         code = get_activation_status(phone_id)
       except Exception as e:
         console(f"{steps(step, total_step)} timeout exceeded, cancelling activation", color=Fore.RED, index=index, total_account=total_account)
-        is_vn_available = False
-        if phone_id:
-          console(f"{steps(step, total_step)} Cleaning up phone number {phone_number} with id {phone_id}", color, index, total_account)
-          cancel_activation(phone_id, status)
-          console(f"{steps(step, total_step)} Activation with id {phone_id} {'completed' if status == 'success' else 'cancelled'}", color, index, total_account)
 
       # for attempt in range(1, max_attempts):
         # try:
@@ -230,7 +225,7 @@ def create_account(account:Account, index:int, total_account:int, reference:Acco
         # time.sleep(wait_seconds * attempt)
 
       if not code:
-        raise Exception(f"{steps(step, total_step)} Failed to get code")
+        raise Exception("Failed to get code, continue to next account")
       console(f"{steps(step, total_step)} Got code: {code}", color, index, total_account)
       
       step += 1
